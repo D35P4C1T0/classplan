@@ -19,11 +19,12 @@ Use Node.js 22.12+. React + Vite, dnd-kit for pointer/keyboard sorting, re-resiz
 
 ## Deploy to Vercel
 
-Push this repository to GitHub and import it into Vercel. Choose **Vite**; build command: `npm run build`; output directory: `dist`. Alternatively run `npx vercel` in this folder.
+Push this repository to GitHub and import it into Vercel. Choose **Vite**; build command: `npm run build`; output directory: `dist`. The linked Vercel project uses `main` as its production branch; pushes to `main` trigger production builds. `vercel.json` explicitly enables those Git deployments. Alternatively run `npx vercel` in this folder.
 
 ## Planning
 
-- The provided draft is preserved: 20-minute presentation, three exercises of 15/15/5 minutes, a 7-minute break, and 5 minutes of questions: **137 minutes**.
+- New plans start with three 10-minute placeholders: Presentation, Explanation, and Discussion.
+- **New plan** asks for confirmation when the current schedule has sections. Confirming resets the plan, type colors, and undo history; cancelling keeps everything. Existing browser-saved plans are preserved until you choose to reset.
 - Change start time and timeframe in Class settings. The default is 09:00 and 120 minutes.
 - **Fit to timeframe** previews proposed durations and finish time in a modal. Apply changes to confirm, or cancel to keep the current schedule. It proportionally adjusts all sections to fill the budget using whole minutes, with a minimum of one minute per section. It also adjusts breaks; edit those afterward if necessary. An impossible fit (more sections than available minutes) is disabled.
 - Use the grip to reorder. Keyboard: focus the grip, press Space to pick up, arrow keys to move, Space to drop, Escape to cancel.

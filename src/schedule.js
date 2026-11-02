@@ -16,49 +16,12 @@ export const newBlock = (type = "custom") => ({
   notes: "",
 });
 export function initialSchedule() {
-  const blocks = [
-    {
-      ...newBlock("presentation"),
-      title: "eCream presentation",
-      minutes: 20,
-      notes: "Introduce eCream and set the scene for the lab.",
-    },
-  ];
-  for (let i = 1; i <= 3; i++) {
-    if (i === 3)
-      blocks.push({
-        ...newBlock("break"),
-        title: "A little breathing room",
-        minutes: 7,
-      });
-    for (const [type, minutes, title, notes] of [
-      [
-        "explanation",
-        15,
-        "Introduce the exercise",
-        "Explain the task and tell students where to get the files.",
-      ],
-      ["practice", 15, "Time to try it", "Students work through the exercise."],
-      [
-        "discussion",
-        5,
-        "Discuss & reveal",
-        "Discuss approaches, then walk through the solution.",
-      ],
-    ])
-      blocks.push({
-        ...newBlock(type),
-        title: `Exercise ${i} · ${title}`,
-        minutes,
-        notes,
-      });
-  }
-  blocks.push({
-    ...newBlock("discussion"),
-    title: "Any questions?",
-    minutes: 5,
-  });
-  return { title: "Lab structure", start: "09:00", budget: 120, blocks };
+  return {
+    title: "Untitled plan",
+    start: "09:00",
+    budget: 120,
+    blocks: ["presentation", "explanation", "discussion"].map(newBlock),
+  };
 }
 export const totalMinutes = (blocks) =>
   blocks.reduce((sum, block) => sum + block.minutes, 0);

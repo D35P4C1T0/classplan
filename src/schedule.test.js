@@ -12,11 +12,18 @@ import {
   exportSchedule,
 } from "./schedule.js";
 
-test("original draft retains all sections and exposes its 17-minute overrun", () => {
+test("new plans have three independent placeholder sections and a two-hour budget", () => {
   const draft = initialSchedule();
-  assert.equal(draft.blocks.length, 12);
-  assert.equal(totalMinutes(draft.blocks), 137);
-  assert.equal(clock(draft.start, totalMinutes(draft.blocks)), "11:17");
+  assert.deepEqual(
+    draft.blocks.map((b) => b.title),
+    ["Presentation", "Explanation", "Discussion"],
+  );
+  assert.equal(draft.budget, 120);
+  assert.equal(draft.title, "Untitled plan");
+  assert.ok(draft.blocks.every((b) => b.minutes === 10 && b.notes === ""));
+  assert.notEqual(draft.blocks[0].id, initialSchedule().blocks[0].id);
+  assert.equal(totalMinutes(draft.blocks), 30);
+  assert.equal(clock(draft.start, totalMinutes(draft.blocks)), "09:30");
   assert.ok(validSchedule(draft));
   assert.equal(clock("23:50", 25), "00:15");
 });
@@ -37,8 +44,8 @@ test("fit preserves content, assigns whole minutes and fills the exact budget", 
     );
   }
   assert.deepEqual(fitBlocks([], 120), []);
-  assert.equal(fitBlocks(blocks, 5), blocks);
-  assert.equal(totalMinutes(blocks), 137);
+  assert.equal(fitBlocks(blocks, 2), blocks);
+  assert.equal(totalMinutes(blocks), 30);
 });
 
 test("saved schedules reject invalid values and duplicate IDs", () => {
@@ -64,6 +71,7 @@ test("exports preserve order and notes, escape HTML and neutralize CSV formulas"
     {
       ...draft.blocks[0],
       title: "=SUM(1,2)",
+      minutes: 20,
       notes: 'A "quote", <tag>\nand another line',
     },
   ];
@@ -178,7 +186,7 @@ test("undo restores successive deletions at their original positions without rev
   const original = initialSchedule().blocks;
   const first = { block: original[1], index: 1 };
   const afterFirst = original.filter((b) => b.id !== first.block.id);
-  const second = { block: afterFirst[3], index: 3 };
+  const second = { block: afterFirst[1], index: 1 };
   const remaining = afterFirst
     .filter((b) => b.id !== second.block.id)
     .map((b, i) => (i === 0 ? { ...b, minutes: 7 } : b));

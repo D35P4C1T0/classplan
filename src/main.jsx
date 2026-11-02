@@ -22,6 +22,7 @@ import {
   Plus,
   Download,
   Upload,
+  FilePlus2,
   Undo2,
   Redo2,
   GripVertical,
@@ -220,6 +221,7 @@ function App() {
   const [saveError, setSaveError] = useState(false);
   const editor = useRef(null);
   const addDialog = useRef(null);
+  const newPlanDialog = useRef(null);
   const deleteDialog = useRef(null);
   const [deletions, setDeletions] = useState({ undo: [], redo: [] });
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -320,6 +322,13 @@ function App() {
     setSelected(block.id);
     addDialog.current.close();
   };
+  function newPlan() {
+    setSchedule(initialSchedule());
+    setSelected(null);
+    setPendingDelete(null);
+    setDeletions({ undo: [], redo: [] });
+    newPlanDialog.current.close();
+  }
   function download(format) {
     const url = URL.createObjectURL(
       new Blob([exportSchedule(schedule, format)], {
@@ -356,6 +365,13 @@ function App() {
         <div className="page-heading">
           <h1>Lesson planner</h1>
           <div className="export-actions">
+            <button
+              onClick={() =>
+                blocks.length ? newPlanDialog.current.showModal() : newPlan()
+              }
+            >
+              <FilePlus2 size={15} /> New plan
+            </button>
             <button
               onClick={undoDeletion}
               disabled={!deletions.undo.length}
@@ -593,6 +609,42 @@ function App() {
           </aside>
         </div>
       </main>
+      <dialog
+        ref={newPlanDialog}
+        className="side-card editor"
+        role="alertdialog"
+        aria-labelledby="new-plan-title"
+        aria-describedby="new-plan-description"
+        onClick={(event) => {
+          if (event.target === event.currentTarget)
+            newPlanDialog.current.close();
+        }}
+      >
+        <div>
+          <div className="side-heading">
+            <h2 id="new-plan-title">Start a new plan?</h2>
+            <button
+              className="icon"
+              aria-label="Cancel new plan"
+              onClick={() => newPlanDialog.current.close()}
+            >
+              <X size={17} />
+            </button>
+          </div>
+          <p id="new-plan-description" className="delete-description">
+            Replace “{schedule.title || "Untitled plan"}” and its{" "}
+            {blocks.length} sections with a new starter plan?
+          </p>
+          <div className="editor-actions">
+            <button autoFocus onClick={() => newPlanDialog.current.close()}>
+              Cancel
+            </button>
+            <button className="primary" onClick={newPlan}>
+              Create new plan
+            </button>
+          </div>
+        </div>
+      </dialog>
       <dialog
         ref={deleteDialog}
         className="side-card editor"
