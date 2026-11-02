@@ -44,7 +44,8 @@ button {
   font-weight: 550;
   transition:
     background 0.15s,
-    box-shadow 0.15s;
+    transform 0.12s ease-out,
+    opacity 0.12s ease-out;
 }
 button:hover {
   background: #393d3a;
@@ -379,7 +380,6 @@ h1 {
   display: flex;
   align-items: flex-start;
   min-width: 0;
-  transition: box-shadow 0.15s;
 }
 .block.selected {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
@@ -441,9 +441,13 @@ h1 {
   white-space: pre-wrap;
   overflow: hidden;
 }
+.duration-control {
+  position: relative;
+  flex-shrink: 0;
+  margin: 15px 5px 0 3px;
+}
 .duration {
   padding: 5px 8px;
-  margin: 15px 5px 0 3px;
   background: #242424b8;
   border-color: #ffffff18;
   font-size: 13px;
@@ -880,4 +884,135 @@ dialog.editor .import-text {
 }
 .import-dialog .editor-actions {
   flex-wrap: wrap;
+}
+
+.duration-tools {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px #18181880;
+}
+.duration-tools::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 7px;
+}
+.duration-tools button {
+  padding: 7px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.duration-control:hover .duration-tools,
+.duration-control:focus-within .duration-tools {
+  display: flex;
+}
+.slot:hover,
+.slot:focus-within {
+  z-index: 2;
+}
+
+.type-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  min-width: 0;
+}
+dialog.editor input[type="color"] {
+  padding: 4px;
+  cursor: pointer;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 3px;
+}
+input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 3px;
+}
+
+.type-library > summary {
+  margin-bottom: 0;
+  cursor: pointer;
+  list-style: none;
+}
+.type-library > summary::-webkit-details-marker {
+  display: none;
+}
+.type-library[open] > summary {
+  margin-bottom: 16px;
+}
+.type-library[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.delete-description {
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.delete-confirm {
+  background: #853f3a;
+  border-color: #a45b53;
+  color: #fff;
+}
+.delete-confirm:hover {
+  background: #9a4b44;
+}
+
+@keyframes soft-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.editor[open] {
+    animation: soft-enter 160ms ease-out;
+  }
+  dialog.editor[open]::backdrop {
+    animation: backdrop-enter 160ms ease-out;
+  }
+  .duration-control:hover .duration-tools,
+  .duration-control:focus-within .duration-tools,
+  .type-library[open] > .block-library {
+    animation: soft-enter 120ms ease-out;
+  }
+  .type-library > summary svg {
+    transition: transform 160ms ease-out;
+  }
+  button:not(.drag-handle):not(:disabled):active {
+    transform: translateY(1px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

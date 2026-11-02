@@ -4,6 +4,7 @@ import {
   initialSchedule,
   totalMinutes,
   resizedMinutes,
+  restoreDeletedBlock,
   clock,
   fitBlocks,
   parseSchedule,
@@ -144,4 +145,56 @@ test("resize uses the original duration and absolute height delta, snapping to w
   assert.equal(resizedMinutes(20, -1000), 1);
   assert.equal(resizedMinutes(20, 10000), 1440);
   assert.equal(resizedMinutes(20, 0), 20);
+});
+
+test("type colors persist through imports and validation accepts only known types and hex colors", () => {
+  const draft = initialSchedule();
+  assert.ok(validSchedule(draft));
+  const colors = { presentation: "#FF8844", practice: "#22aa88" };
+  const imported = parseSchedule(JSON.stringify({ ...draft, colors }));
+  assert.deepEqual(imported.colors, colors);
+  assert.ok(validSchedule(imported));
+  assert.deepEqual(
+    parseSchedule('colors: {custom: "#123abc"}\nblocks: []').colors,
+    { custom: "#123abc" },
+  );
+  for (const invalid of [
+    null,
+    [],
+    "red",
+    { custom: "red" },
+    { custom: "#abc" },
+    { custom: 123456 },
+    { unknown: "#123456" },
+  ]) {
+    assert.ok(!validSchedule({ ...draft, colors: invalid }));
+    assert.throws(() =>
+      parseSchedule(JSON.stringify({ ...draft, colors: invalid })),
+    );
+  }
+});
+
+test("undo restores successive deletions at their original positions without reverting other edits", () => {
+  const original = initialSchedule().blocks;
+  const first = { block: original[1], index: 1 };
+  const afterFirst = original.filter((b) => b.id !== first.block.id);
+  const second = { block: afterFirst[3], index: 3 };
+  const remaining = afterFirst
+    .filter((b) => b.id !== second.block.id)
+    .map((b, i) => (i === 0 ? { ...b, minutes: 7 } : b));
+  const restored = restoreDeletedBlock(
+    restoreDeletedBlock(remaining, second),
+    first,
+  );
+  assert.deepEqual(
+    restored.map((b) => b.id),
+    original.map((b) => b.id),
+  );
+  assert.equal(restored[0].minutes, 7);
+  assert.deepEqual(restored[1], first.block);
+  assert.equal(restoreDeletedBlock(restored, first), restored);
+  assert.deepEqual(restoreDeletedBlock([], { block: first.block, index: 10 }), [
+    first.block,
+  ]);
+  assert.equal(remaining.length, original.length - 2);
 });

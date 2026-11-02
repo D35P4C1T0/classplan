@@ -67,6 +67,12 @@ export function clock(start, offset = 0) {
   const total = h * 60 + m + offset;
   return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
+export function restoreDeletedBlock(blocks, { block, index }) {
+  if (blocks.some((item) => item.id === block.id)) return blocks;
+  const restored = [...blocks];
+  restored.splice(Math.min(index, restored.length), 0, block);
+  return restored;
+}
 export const resizedMinutes = (minutes, heightDelta) =>
   Math.max(1, Math.min(1440, minutes + Math.round(heightDelta / 3)));
 
@@ -92,6 +98,16 @@ export function validSchedule(value) {
     Number.isInteger(value.budget) &&
     value.budget >= 1 &&
     value.budget <= 1440 &&
+    (value.colors === undefined ||
+      (value.colors !== null &&
+        typeof value.colors === "object" &&
+        !Array.isArray(value.colors) &&
+        Object.entries(value.colors).every(
+          ([type, color]) =>
+            Object.hasOwn(TYPES, type) &&
+            typeof color === "string" &&
+            /^#[0-9a-f]{6}$/i.test(color),
+        ))) &&
     Array.isArray(value.blocks) &&
     new Set(value.blocks.map((b) => b?.id)).size === value.blocks.length &&
     value.blocks.every(
@@ -122,6 +138,7 @@ export function parseSchedule(text) {
     title: value.title ?? "Imported schedule",
     start: value.start ?? "09:00",
     budget: value.budget ?? 120,
+    ...(value.colors !== undefined ? { colors: value.colors } : {}),
     blocks: value.blocks.map((block, index) => {
       if (!block || typeof block !== "object" || Array.isArray(block)) {
         throw new Error(`Section ${index + 1} must be an object.`);
@@ -137,7 +154,7 @@ export function parseSchedule(text) {
   };
   if (!validSchedule(schedule)) {
     throw new Error(
-      "Use a text title, HH:MM start time, and whole-number budget (1–1440). Each block needs a text title, whole-number minutes (1–1440), a valid type, and optional text notes.",
+      "Use a text title, HH:MM start time, and whole-number budget (1–1440). Each block needs a text title, whole-number minutes (1–1440), a valid type, and optional text notes. Optional colors must map type names to six-digit hex colors.",
     );
   }
   return schedule;

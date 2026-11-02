@@ -22,6 +22,8 @@ import {
   Plus,
   Download,
   Upload,
+  Undo2,
+  Redo2,
   GripVertical,
   Clock3,
   ArrowUpRight,
@@ -33,6 +35,7 @@ import {
   X,
   WandSparkles,
   Layers,
+  ChevronDown,
 } from "lucide-react";
 import {
   TYPES,
@@ -40,6 +43,7 @@ import {
   initialSchedule,
   totalMinutes,
   resizedMinutes,
+  restoreDeletedBlock,
   clock,
   fitBlocks,
   parseSchedule,
@@ -58,7 +62,7 @@ function load() {
   }
   return initialSchedule();
 }
-function Block({ block, start, selected, select, resize, remove }) {
+function Block({ block, start, selected, select, resize, remove, color }) {
   const [previewMinutes, setPreviewMinutes] = useState(null);
   const resizeFrame = useRef(null);
   const pendingMinutes = useRef(block.minutes);
@@ -97,7 +101,7 @@ function Block({ block, start, selected, select, resize, remove }) {
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Translate.toString(transform),
         transition,
         zIndex: isDragging ? 3 : undefined,
       }}
@@ -121,7 +125,12 @@ function Block({ block, start, selected, select, resize, remove }) {
           handleComponent={{ bottom: <span className="resize-mark" /> }}
           handleStyles={{ bottom: { height: 12, bottom: 0 } }}
           className={`block ${selected ? "selected" : ""}`}
-          style={{ "--accent": type.color, "--tint": type.tint }}
+          style={{
+            "--accent": color ?? type.color,
+            "--tint": color
+              ? `color-mix(in srgb, ${color} 12%, #2c2c2c)`
+              : type.tint,
+          }}
         >
           <button
             className="drag-handle icon"
@@ -138,10 +147,35 @@ function Block({ block, start, selected, select, resize, remove }) {
               <span className="block-notes">{block.notes}</span>
             )}
           </div>
-          <span className="duration">
-            {minutes}
-            <span> min</span>
-          </span>
+          <div className="duration-control">
+            <button
+              className="duration"
+              aria-label={`Adjust duration of ${block.title || "Untitled section"}, ${minutes} minutes`}
+            >
+              {minutes}
+              <span> min</span>
+            </button>
+            <div
+              className="duration-tools"
+              role="group"
+              aria-label="Adjust duration"
+            >
+              <button
+                disabled={block.minutes < 6}
+                onClick={() => resize(block.minutes - 5)}
+                aria-label="Subtract 5 minutes"
+              >
+                −5 min
+              </button>
+              <button
+                disabled={block.minutes > 1435}
+                onClick={() => resize(block.minutes + 5)}
+                aria-label="Add 5 minutes"
+              >
+                +5 min
+              </button>
+            </div>
+          </div>
           <button
             className="icon section-action"
             onClick={select}
@@ -164,12 +198,31 @@ function Block({ block, start, selected, select, resize, remove }) {
     </div>
   );
 }
+function TypePicker({ colors, onAdd }) {
+  return (
+    <div className="block-library">
+      {Object.entries(TYPES).map(([key, type]) => (
+        <button key={key} onClick={() => onAdd(key)}>
+          <span
+            className="type-dot"
+            style={{ background: colors[key] ?? type.color }}
+          />
+          {type.label}
+          <Plus size={14} />
+        </button>
+      ))}
+    </div>
+  );
+}
 function App() {
   const [schedule, setSchedule] = useState(load);
   const [selected, setSelected] = useState(null);
   const [saveError, setSaveError] = useState(false);
-  const [adding, setAdding] = useState(false);
   const editor = useRef(null);
+  const addDialog = useRef(null);
+  const deleteDialog = useRef(null);
+  const [deletions, setDeletions] = useState({ undo: [], redo: [] });
+  const [pendingDelete, setPendingDelete] = useState(null);
   const fitDialog = useRef(null);
   const importDialog = useRef(null);
   const [importText, setImportText] = useState("");
@@ -193,10 +246,61 @@ function App() {
       setSaveError(true);
     }
   }, [schedule]);
-  const { blocks, budget, start } = schedule;
+  const { blocks, budget, start, colors = {} } = schedule;
   const total = totalMinutes(blocks),
     over = total > budget;
   const active = blocks.find((block) => block.id === selected);
+  const deleting = blocks.find((block) => block.id === pendingDelete);
+  useEffect(() => {
+    if (deleting && !deleteDialog.current.open)
+      deleteDialog.current.showModal();
+  }, [deleting?.id]);
+  function undoDeletion() {
+    const deleted = deletions.undo.at(-1);
+    if (!deleted) return;
+    setSchedule((s) => ({
+      ...s,
+      blocks: restoreDeletedBlock(s.blocks, deleted),
+    }));
+    setDeletions({
+      undo: deletions.undo.slice(0, -1),
+      redo: [...deletions.redo, deleted],
+    });
+  }
+  function redoDeletion() {
+    const restored = deletions.redo.at(-1);
+    if (!restored) return;
+    const index = blocks.findIndex((block) => block.id === restored.block.id);
+    if (index < 0) return;
+    setDeletions({
+      undo: [...deletions.undo, { block: blocks[index], index }],
+      redo: deletions.redo.slice(0, -1),
+    });
+    setSchedule((s) => ({
+      ...s,
+      blocks: s.blocks.filter((block) => block.id !== restored.block.id),
+    }));
+  }
+  useEffect(() => {
+    function handleUndoKey(event) {
+      if (
+        event.defaultPrevented ||
+        !(event.ctrlKey || event.metaKey) ||
+        event.shiftKey ||
+        event.altKey ||
+        event.key.toLowerCase() !== "z" ||
+        event.target.closest("input, textarea, select") ||
+        event.target.isContentEditable ||
+        document.querySelector("dialog[open]") ||
+        !deletions.undo.length
+      )
+        return;
+      event.preventDefault();
+      undoDeletion();
+    }
+    document.addEventListener("keydown", handleUndoKey);
+    return () => document.removeEventListener("keydown", handleUndoKey);
+  }, [deletions]);
   useEffect(() => {
     if (active && !editor.current.open) {
       editor.current.showModal();
@@ -214,7 +318,7 @@ function App() {
     const block = newBlock(type);
     setSchedule((s) => ({ ...s, blocks: [...s.blocks, block] }));
     setSelected(block.id);
-    setAdding(false);
+    addDialog.current.close();
   };
   function download(format) {
     const url = URL.createObjectURL(
@@ -252,6 +356,20 @@ function App() {
         <div className="page-heading">
           <h1>Lesson planner</h1>
           <div className="export-actions">
+            <button
+              onClick={undoDeletion}
+              disabled={!deletions.undo.length}
+              title="Undo section deletion (Ctrl+Z / ⌘Z)"
+            >
+              <Undo2 size={15} /> Undo
+            </button>
+            <button
+              onClick={redoDeletion}
+              disabled={!deletions.redo.length}
+              title="Redo section deletion"
+            >
+              <Redo2 size={15} /> Redo
+            </button>
             <button
               aria-haspopup="dialog"
               onClick={() => importDialog.current.showModal()}
@@ -307,7 +425,7 @@ function App() {
                 title={`${b.title}: ${b.minutes} min`}
                 style={{
                   width: `${(b.minutes / Math.max(total, budget)) * 100}%`,
-                  background: TYPES[b.type].color,
+                  background: colors[b.type] ?? TYPES[b.type].color,
                 }}
               />
             ))}
@@ -341,7 +459,11 @@ function App() {
                   Drag to reorder · pull a block’s bottom edge to resize
                 </span>
               </div>
-              <button className="primary" onClick={() => setAdding(!adding)}>
+              <button
+                className="primary"
+                aria-haspopup="dialog"
+                onClick={() => addDialog.current.showModal()}
+              >
                 <Plus size={16} />
                 Add section
               </button>
@@ -378,20 +500,14 @@ function App() {
                       <Block
                         key={block.id}
                         block={block}
+                        color={colors[block.type]}
                         start={clock(start, from)}
                         selected={selected === block.id}
                         select={() => {
                           setSelected(block.id);
-                          setAdding(false);
                         }}
                         resize={(minutes) => edit(block.id, { minutes })}
-                        remove={() => {
-                          setSchedule((s) => ({
-                            ...s,
-                            blocks: s.blocks.filter((b) => b.id !== block.id),
-                          }));
-                          if (selected === block.id) setSelected(null);
-                        }}
+                        remove={() => setPendingDelete(block.id)}
                       />
                     );
                   })}
@@ -404,7 +520,11 @@ function App() {
                 <h3>No sections</h3>
               </div>
             )}
-            <button className="add-bottom" onClick={() => setAdding(true)}>
+            <button
+              className="add-bottom"
+              aria-haspopup="dialog"
+              onClick={() => addDialog.current.showModal()}
+            >
               <Plus size={16} /> Add section
             </button>
             <div className="finish-line">
@@ -463,37 +583,101 @@ function App() {
                 </p>
               )}
             </section>
-            <section className="side-card">
-              <div className="side-heading">
-                <h2>{adding ? "Add a section" : "Section types"}</h2>
-                {adding ? (
-                  <button
-                    className="icon"
-                    aria-label="Close add section"
-                    onClick={() => setAdding(false)}
-                  >
-                    <X size={17} />
-                  </button>
-                ) : (
-                  <Layers size={17} />
-                )}
-              </div>
-              <div className="block-library">
-                {Object.entries(TYPES).map(([key, type]) => (
-                  <button key={key} onClick={() => add(key)}>
-                    <span
-                      className="type-dot"
-                      style={{ background: type.color }}
-                    />
-                    {type.label}
-                    <Plus size={14} />
-                  </button>
-                ))}
-              </div>
-            </section>
+            <details className="side-card type-library">
+              <summary className="side-heading">
+                <h2>Section types</h2>
+                <ChevronDown size={17} />
+              </summary>
+              <TypePicker colors={colors} onAdd={add} />
+            </details>
           </aside>
         </div>
       </main>
+      <dialog
+        ref={deleteDialog}
+        className="side-card editor"
+        role="alertdialog"
+        aria-labelledby="delete-title"
+        aria-describedby="delete-description"
+        onClose={() => setPendingDelete(null)}
+        onClick={(event) => {
+          if (event.target === event.currentTarget)
+            deleteDialog.current.close();
+        }}
+      >
+        {deleting && (
+          <div>
+            <div className="side-heading">
+              <h2 id="delete-title">Delete section?</h2>
+              <button
+                className="icon"
+                aria-label="Cancel deletion"
+                onClick={() => deleteDialog.current.close()}
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <p id="delete-description" className="delete-description">
+              Remove “{deleting.title || "Untitled section"}” (
+              {deleting.minutes} min)? You can undo with Ctrl+Z or ⌘Z.
+            </p>
+            <div className="editor-actions">
+              <button autoFocus onClick={() => deleteDialog.current.close()}>
+                Cancel
+              </button>
+              <button
+                className="delete-confirm"
+                onClick={() => {
+                  setDeletions((history) => ({
+                    undo: [
+                      ...history.undo,
+                      {
+                        block: deleting,
+                        index: blocks.findIndex(
+                          (block) => block.id === deleting.id,
+                        ),
+                      },
+                    ],
+                    redo: [],
+                  }));
+                  setSchedule((s) => ({
+                    ...s,
+                    blocks: s.blocks.filter(
+                      (block) => block.id !== deleting.id,
+                    ),
+                  }));
+                  if (selected === deleting.id) setSelected(null);
+                  deleteDialog.current.close();
+                }}
+              >
+                Delete section
+              </button>
+            </div>
+          </div>
+        )}
+      </dialog>
+      <dialog
+        ref={addDialog}
+        className="side-card editor"
+        aria-labelledby="add-title"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) addDialog.current.close();
+        }}
+      >
+        <div>
+          <div className="side-heading">
+            <h2 id="add-title">Add section</h2>
+            <button
+              className="icon"
+              aria-label="Close section picker"
+              onClick={() => addDialog.current.close()}
+            >
+              <X size={17} />
+            </button>
+          </div>
+          <TypePicker colors={colors} onAdd={add} />
+        </div>
+      </dialog>
       <dialog
         ref={importDialog}
         className="side-card editor import-dialog"
@@ -542,9 +726,9 @@ function App() {
                 <button
                   className="primary"
                   onClick={() => {
+                    setDeletions({ undo: [], redo: [] });
                     setSchedule(importPreview);
                     setSelected(null);
-                    setAdding(false);
                     setImportText("");
                     importDialog.current.close();
                   }}
@@ -717,19 +901,39 @@ function App() {
               />
             </label>
             <div className="settings-row">
-              <label>
-                Type
-                <select
-                  value={active.type}
-                  onChange={(e) => edit(active.id, { type: e.target.value })}
-                >
-                  {Object.entries(TYPES).map(([key, type]) => (
-                    <option key={key} value={key}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="type-field">
+                <label>
+                  Type
+                  <select
+                    value={active.type}
+                    onChange={(e) => edit(active.id, { type: e.target.value })}
+                  >
+                    {Object.entries(TYPES).map(([key, type]) => (
+                      <option key={key} value={key}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Color
+                  <input
+                    type="color"
+                    value={colors[active.type] ?? TYPES[active.type].color}
+                    aria-label={`Color for all ${TYPES[active.type].label} sections`}
+                    title={`Applies to all ${TYPES[active.type].label} sections`}
+                    onChange={(event) =>
+                      setSchedule((s) => ({
+                        ...s,
+                        colors: {
+                          ...s.colors,
+                          [active.type]: event.target.value,
+                        },
+                      }))
+                    }
+                  />
+                </label>
+              </div>
               <label>
                 Minutes
                 <input
