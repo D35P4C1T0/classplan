@@ -1,5 +1,5 @@
 {
-  "name": "lesson-schedule",
+  "name": "classplan",
   "version": "1.0.0",
   "description": "A compact, drag-and-drop lesson planner with a visible time budget and CSV/HTML exports.",
   "scripts": {
@@ -16,10 +16,14 @@
     "lucide-react": "^1.66.0",
     "re-resizable": "^6.11.2",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "vite": "^8.3.5"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  }
 }

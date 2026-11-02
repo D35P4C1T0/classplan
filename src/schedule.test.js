@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import {
   initialSchedule,
   totalMinutes,
+  resizedMinutes,
   clock,
   fitBlocks,
+  parseSchedule,
   validSchedule,
   exportSchedule,
 } from "./schedule.js";
@@ -74,4 +76,72 @@ test("exports preserve order and notes, escape HTML and neutralize CSV formulas"
   assert.ok(!html.includes("<script>"));
   assert.ok(html.includes("&lt;tag&gt;"));
   assert.ok(html.includes("20 / 120 minutes"));
+});
+
+test("imports JSON and YAML with defaults and fresh unique IDs", () => {
+  const source = {
+    title: "A class",
+    start: "10:30",
+    budget: 90,
+    blocks: [
+      { title: "Intro", minutes: 15, type: "presentation", notes: "Hello" },
+      { title: "Activity", minutes: 30 },
+    ],
+  };
+  const json = parseSchedule(JSON.stringify(source));
+  const yaml = parseSchedule(
+    'title: A class\nstart: "10:30"\nbudget: 90\nblocks:\n  - title: Intro\n    minutes: 15\n    type: presentation\n    notes: Hello\n  - title: Activity\n    minutes: 30',
+  );
+  const withoutIDs = (schedule) => ({
+    ...schedule,
+    blocks: schedule.blocks.map(({ id, ...block }) => block),
+  });
+  assert.deepEqual(withoutIDs(json), withoutIDs(yaml));
+  assert.ok(validSchedule(json));
+  assert.notEqual(json.blocks[0].id, yaml.blocks[0].id);
+  assert.equal(json.blocks[1].type, "custom");
+  assert.equal(json.blocks[1].notes, "");
+  const defaults = parseSchedule("blocks: []");
+  assert.deepEqual(
+    { ...defaults },
+    { title: "Imported schedule", start: "09:00", budget: 120, blocks: [] },
+  );
+});
+
+test("rejects malformed imports and invalid fields without changing the current schedule", () => {
+  const current = initialSchedule();
+  const before = structuredClone(current);
+  for (const text of [
+    "",
+    "{",
+    "[]",
+    "blocks: nope",
+    "blocks: [null]",
+    "blocks: [1]",
+    "blocks: [[]]",
+    "title: One\ntitle: Two\nblocks: []",
+    "budget: -1\nblocks: []",
+    'start: "25:00"\nblocks: []',
+    'start: ["09:00"]\nblocks: []',
+    "blocks: [{title: Intro, minutes: 0}]",
+    "blocks: [{title: Intro, minutes: 2.5}]",
+    'blocks: [{title: Intro, minutes: "15"}]',
+    "blocks: [{title: Intro, minutes: 15, type: unknown}]",
+    "blocks: [{title: Intro, minutes: 15, type: [custom]}]",
+    "blocks: [{minutes: 15}]",
+    "blocks: [{title: Intro, minutes: 15, notes: [text]}]",
+  ]) {
+    assert.throws(() => parseSchedule(text), undefined, text);
+  }
+  assert.deepEqual(current, before);
+});
+
+test("resize uses the original duration and absolute height delta, snapping to whole minutes", () => {
+  assert.equal(resizedMinutes(20, 3), 21);
+  assert.equal(resizedMinutes(20, 6), 22);
+  assert.equal(resizedMinutes(20, -9), 17);
+  assert.equal(resizedMinutes(20, 4), 21);
+  assert.equal(resizedMinutes(20, -1000), 1);
+  assert.equal(resizedMinutes(20, 10000), 1440);
+  assert.equal(resizedMinutes(20, 0), 20);
 });

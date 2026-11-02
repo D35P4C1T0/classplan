@@ -1,10 +1,12 @@
+import { parse } from "yaml";
+
 export const TYPES = {
-  presentation: { label: "Presentation", color: "#5266b8", tint: "#eef0fa" },
-  explanation: { label: "Explanation", color: "#b87925", tint: "#fff5e5" },
-  practice: { label: "Student practice", color: "#248777", tint: "#eaf5f1" },
-  discussion: { label: "Discussion", color: "#9466aa", tint: "#f5eef8" },
-  break: { label: "Break", color: "#75818d", tint: "#f0f2f4" },
-  custom: { label: "Custom section", color: "#467b9b", tint: "#edf4f9" },
+  presentation: { label: "Presentation", color: "#a0aff0", tint: "#2d3040" },
+  explanation: { label: "Explanation", color: "#e2b773", tint: "#3a3228" },
+  practice: { label: "Student practice", color: "#81cbb5", tint: "#293a34" },
+  discussion: { label: "Discussion", color: "#c7a3df", tint: "#382f3e" },
+  break: { label: "Break", color: "#b2bdc8", tint: "#303438" },
+  custom: { label: "Custom section", color: "#90bfdc", tint: "#2a3540" },
 };
 export const newBlock = (type = "custom") => ({
   id: crypto.randomUUID(),
@@ -65,6 +67,9 @@ export function clock(start, offset = 0) {
   const total = h * 60 + m + offset;
   return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
+export const resizedMinutes = (minutes, heightDelta) =>
+  Math.max(1, Math.min(1440, minutes + Math.round(heightDelta / 3)));
+
 export function fitBlocks(blocks, budget) {
   if (!blocks.length || blocks.length > budget) return blocks;
   const extra = budget - blocks.length;
@@ -82,6 +87,7 @@ export function validSchedule(value) {
   return (
     value &&
     typeof value.title === "string" &&
+    typeof value.start === "string" &&
     /^([01]\d|2[0-3]):[0-5]\d$/.test(value.start) &&
     Number.isInteger(value.budget) &&
     value.budget >= 1 &&
@@ -94,12 +100,47 @@ export function validSchedule(value) {
         typeof b.id === "string" &&
         typeof b.title === "string" &&
         typeof b.notes === "string" &&
+        typeof b.type === "string" &&
         Object.hasOwn(TYPES, b.type) &&
         Number.isInteger(b.minutes) &&
         b.minutes >= 1 &&
         b.minutes <= 1440,
     )
   );
+}
+export function parseSchedule(text) {
+  const value = parse(text);
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    !Array.isArray(value.blocks)
+  ) {
+    throw new Error('Expected a schedule object with a "blocks" array.');
+  }
+  const schedule = {
+    title: value.title ?? "Imported schedule",
+    start: value.start ?? "09:00",
+    budget: value.budget ?? 120,
+    blocks: value.blocks.map((block, index) => {
+      if (!block || typeof block !== "object" || Array.isArray(block)) {
+        throw new Error(`Section ${index + 1} must be an object.`);
+      }
+      return {
+        id: crypto.randomUUID(),
+        title: block.title,
+        type: block.type ?? "custom",
+        minutes: block.minutes,
+        notes: block.notes ?? "",
+      };
+    }),
+  };
+  if (!validSchedule(schedule)) {
+    throw new Error(
+      "Use a text title, HH:MM start time, and whole-number budget (1–1440). Each block needs a text title, whole-number minutes (1–1440), a valid type, and optional text notes.",
+    );
+  }
+  return schedule;
 }
 const escapeHTML = (value) =>
   String(value).replace(
