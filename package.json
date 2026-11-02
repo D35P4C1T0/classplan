@@ -1,0 +1,25 @@
+{
+  "name": "lesson-schedule",
+  "version": "1.0.0",
+  "description": "A compact, drag-and-drop lesson planner with a visible time budget and CSV/HTML exports.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test"
+  },
+  "type": "module",
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "lucide-react": "^1.66.0",
+    "re-resizable": "^6.11.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5"
+  },
+  "private": true
+}
