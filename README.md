@@ -35,7 +35,9 @@ Push this repository to GitHub and import it into Vercel. Choose **Vite**; build
 - Deleting a section requires confirmation. The toolbar Undo button or Ctrl+Z (Cmd+Z on Mac) restores deletions in reverse order, preserving other edits. Redo reapplies an undone deletion; a new confirmed deletion clears redo history. Text fields keep their normal undo behavior. Deletion history lasts for this page session and resets when importing another schedule.
 - Add, duplicate, edit or remove sections. Adding a type to `TYPES` in `src/schedule.js` automatically adds it to the library and editor.
 - Edits save in this browser’s local storage. Storage is device/browser-specific, with no cross-device collaboration. A warning appears if saving fails. Export before clearing browser storage.
-- CSV exports include start/end times, duration, title, type and notes, with spreadsheet formula protection. HTML exports are standalone, escaped documents that can be shared or printed. CSV/HTML exports are snapshots. **Export JSON** and **Export YAML** preserve all editable plan data, including type colors, and can be pasted back into Import JSON / YAML to restore or share a plan.
+- CSV exports include start/end times, duration, title, type and notes, with spreadsheet formula protection. HTML exports are standalone, escaped documents that can be shared or printed. CSV/HTML exports are snapshots. **Actions → Export → JSON / YAML** preserve all editable plan data, including type colors, and can be pasted back into Import JSON / YAML to restore or share a plan.
+
+All download formats are under **Actions → Export**: JSON, YAML, CSV, and HTML. The Actions menu closes on outside click or Escape.
 
 ## Share a plan
 
@@ -43,7 +45,7 @@ Click **Share**, then **Copy link**. The link contains a snapshot of the plan, n
 
 ## Import YAML or JSON
 
-Click **Import**, paste text, then **Review import**. Existing sections are replaced only after **Replace schedule**; Cancel, Escape, or closing the modal keeps the current schedule.
+Click **Actions → Import JSON / YAML**, paste text, then **Review import**. Existing sections are replaced only after **Replace schedule**; Cancel, Escape, or closing the modal keeps the current schedule.
 
 ```yaml
 title: My class

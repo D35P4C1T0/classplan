@@ -28,7 +28,6 @@ import {
   Redo2,
   GripVertical,
   Clock3,
-  ArrowUpRight,
   Check,
   AlertTriangle,
   Copy,
@@ -230,6 +229,8 @@ function App() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const fitDialog = useRef(null);
   const importDialog = useRef(null);
+  const actionsMenu = useRef(null);
+  const exportDialog = useRef(null);
   const shareDialog = useRef(null);
   const [shareLink, setShareLink] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
@@ -391,12 +392,6 @@ function App() {
               <FilePlus2 size={15} /> New plan
             </button>
             <button
-              aria-haspopup="dialog"
-              onClick={() => importDialog.current.showModal()}
-            >
-              <Upload size={15} /> Import JSON / YAML
-            </button>
-            <button
               onClick={undoDeletion}
               disabled={!deletions.undo.length}
               title="Undo section deletion (Ctrl+Z / ⌘Z)"
@@ -420,19 +415,15 @@ function App() {
             >
               <Share2 size={15} /> Share
             </button>
-            {["json", "yaml"].map((format) => (
-              <button key={format} onClick={() => download(format)}>
-                <Download size={15} /> Export {format.toUpperCase()}
-              </button>
-            ))}
-            <button onClick={() => download("csv")}>
-              <Download size={15} />
-              CSV
-            </button>
-            <button onClick={() => download("html")}>
-              <Download size={15} />
-              Export HTML
-              <ArrowUpRight size={14} />
+            <button
+              popoverTarget="plan-actions"
+              onClick={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                actionsMenu.current.style.top = `${rect.bottom + 8}px`;
+                actionsMenu.current.style.right = `${window.innerWidth - rect.right}px`;
+              }}
+            >
+              Actions <ChevronDown size={15} />
             </button>
           </div>
         </div>
@@ -642,6 +633,74 @@ function App() {
           </aside>
         </div>
       </main>
+      <div
+        id="plan-actions"
+        ref={actionsMenu}
+        popover="auto"
+        className="actions-menu"
+        aria-label="Plan actions"
+      >
+        <button
+          onClick={() => {
+            actionsMenu.current.hidePopover();
+            importDialog.current.showModal();
+          }}
+        >
+          <Upload size={16} /> Import JSON / YAML
+        </button>
+        <button
+          onClick={() => {
+            actionsMenu.current.hidePopover();
+            exportDialog.current.showModal();
+          }}
+        >
+          <Download size={16} /> Export <ChevronDown size={14} />
+        </button>
+      </div>
+      <dialog
+        ref={exportDialog}
+        className="side-card editor"
+        aria-labelledby="export-title"
+        onClick={(event) => {
+          if (event.target === event.currentTarget)
+            exportDialog.current.close();
+        }}
+      >
+        <div>
+          <div className="side-heading">
+            <h2 id="export-title">Export plan</h2>
+            <button
+              className="icon"
+              aria-label="Close export"
+              onClick={() => exportDialog.current.close()}
+            >
+              <X size={17} />
+            </button>
+          </div>
+          <div className="export-formats">
+            {[
+              ["json", "Editable plan"],
+              ["yaml", "Editable plan"],
+              ["csv", "Spreadsheet"],
+              ["html", "Print or share"],
+            ].map(([format, description]) => (
+              <button
+                key={format}
+                onClick={() => {
+                  download(format);
+                  exportDialog.current.close();
+                }}
+              >
+                <Download size={17} />
+                <span>
+                  <strong>{format.toUpperCase()}</strong>
+                  <small>{description}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </dialog>
       <dialog
         ref={shareDialog}
         className="side-card editor"

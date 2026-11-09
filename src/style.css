@@ -1017,3 +1017,56 @@ input[type="color"]::-moz-color-swatch {
     transition: none !important;
   }
 }
+
+.actions-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: 220px;
+  max-width: calc(100vw - 24px);
+  padding: 5px;
+  background: var(--surface);
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #18181860;
+}
+.actions-menu button {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 12px;
+  border: 0;
+  font-size: 13px;
+}
+.actions-menu button > svg:last-child:not(:first-child) {
+  margin-left: auto;
+}
+.export-formats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.export-formats button {
+  justify-content: flex-start;
+  text-align: left;
+  padding: 16px 12px;
+  gap: 12px;
+}
+.export-formats strong,
+.export-formats small {
+  display: block;
+}
+.export-formats strong {
+  font-size: 14px;
+}
+.export-formats small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .actions-menu:popover-open {
+    animation: soft-enter 120ms ease-out;
+  }
+}
