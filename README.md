@@ -37,6 +37,10 @@ Push this repository to GitHub and import it into Vercel. Choose **Vite**; build
 - Edits save in this browser’s local storage. Storage is device/browser-specific, with no cross-device collaboration. A warning appears if saving fails. Export before clearing browser storage.
 - CSV exports include start/end times, duration, title, type and notes, with spreadsheet formula protection. HTML exports are standalone, escaped documents that can be shared or printed. CSV/HTML exports are snapshots. **Export JSON** and **Export YAML** preserve all editable plan data, including type colors, and can be pasted back into Import JSON / YAML to restore or share a plan.
 
+## Share a plan
+
+Click **Share**, then **Copy link**. The link contains a snapshot of the plan, notes, and colors in its URL fragment. Anyone with the link can open a copy; opening it previews the import and asks before replacing existing sections. Later edits do not update an already shared link. No backend or account is needed. Long plans may exceed messaging apps’ URL limits; use JSON/YAML exports for those. The link content is readable by anyone you share it with.
+
 ## Import YAML or JSON
 
 Click **Import**, paste text, then **Review import**. Existing sections are replaced only after **Replace schedule**; Cancel, Escape, or closing the modal keeps the current schedule.

@@ -22,6 +22,7 @@ import {
   Plus,
   Download,
   Upload,
+  Share2,
   FilePlus2,
   Undo2,
   Redo2,
@@ -48,6 +49,8 @@ import {
   clock,
   fitBlocks,
   parseSchedule,
+  createShareLink,
+  readShareLink,
   validSchedule,
   exportSchedule,
 } from "./schedule.js";
@@ -227,10 +230,23 @@ function App() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const fitDialog = useRef(null);
   const importDialog = useRef(null);
+  const shareDialog = useRef(null);
+  const [shareLink, setShareLink] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
   const [importText, setImportText] = useState("");
   const [importError, setImportError] = useState("");
   const [importPreview, setImportPreview] = useState(null);
   const [proposal, setProposal] = useState(null);
+  useEffect(() => {
+    try {
+      const shared = readShareLink(window.location.hash);
+      if (!shared) return;
+      setImportPreview(shared);
+    } catch (error) {
+      setImportError(`Could not open shared plan: ${error.message}`);
+    }
+    importDialog.current.showModal();
+  }, []);
   useEffect(() => {
     if (proposal && !fitDialog.current.open) fitDialog.current.showModal();
   }, [proposal]);
@@ -393,6 +409,16 @@ function App() {
               title="Redo section deletion"
             >
               <Redo2 size={15} /> Redo
+            </button>
+            <button
+              aria-haspopup="dialog"
+              onClick={() => {
+                setShareLink(createShareLink(schedule, window.location.href));
+                setCopyStatus("");
+                shareDialog.current.showModal();
+              }}
+            >
+              <Share2 size={15} /> Share
             </button>
             {["json", "yaml"].map((format) => (
               <button key={format} onClick={() => download(format)}>
@@ -616,6 +642,65 @@ function App() {
           </aside>
         </div>
       </main>
+      <dialog
+        ref={shareDialog}
+        className="side-card editor"
+        aria-labelledby="share-title"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) shareDialog.current.close();
+        }}
+      >
+        <div>
+          <div className="side-heading">
+            <h2 id="share-title">Share plan</h2>
+            <button
+              className="icon"
+              aria-label="Close sharing"
+              onClick={() => shareDialog.current.close()}
+            >
+              <X size={17} />
+            </button>
+          </div>
+          <label>
+            Link
+            <input
+              readOnly
+              value={shareLink}
+              onFocus={(event) => event.target.select()}
+            />
+          </label>
+          <p className="muted">
+            Anyone with the link can open a copy, including notes. Later edits
+            won’t change this snapshot.
+          </p>
+          {shareLink.length > 8000 && (
+            <p className="import-warning">
+              This plan produces a long link that some apps may truncate. Use
+              JSON or YAML export if sharing fails.
+            </p>
+          )}
+          <p className="muted" role="status">
+            {copyStatus}
+          </p>
+          <div className="editor-actions">
+            <button onClick={() => shareDialog.current.close()}>Done</button>
+            <button
+              className="primary"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(shareLink);
+                  setCopyStatus("Link copied.");
+                } catch {
+                  shareDialog.current.querySelector("input").select();
+                  setCopyStatus("Select and copy the link manually.");
+                }
+              }}
+            >
+              <Copy size={14} /> Copy link
+            </button>
+          </div>
+        </div>
+      </dialog>
       <dialog
         ref={newPlanDialog}
         className="side-card editor"

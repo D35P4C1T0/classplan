@@ -8,6 +8,8 @@ import {
   clock,
   fitBlocks,
   parseSchedule,
+  createShareLink,
+  readShareLink,
   validSchedule,
   exportSchedule,
 } from "./schedule.js";
@@ -226,4 +228,36 @@ test("JSON and YAML exports round-trip all editable schedule data", () => {
     assert.deepEqual(parseSchedule(exportSchedule(empty, format)), empty);
   }
   assert.deepEqual(JSON.parse(exportSchedule(schedule, "json")), schedule);
+});
+
+test("share links preserve plans in the fragment and validate imported data", () => {
+  const schedule = initialSchedule();
+  schedule.title = "Caffè & code + Q&A";
+  schedule.colors = { presentation: "#123abc" };
+  schedule.blocks[0].notes = "Hello 👋\nA second line";
+  const url = new URL(
+    createShareLink(
+      schedule,
+      "https://classplan.example/?tracking=private#old",
+    ),
+  );
+  assert.equal(url.search, "");
+  assert.ok(url.hash.startsWith("#plan="));
+  const shared = readShareLink(url.hash);
+  const withoutIDs = (s) => ({
+    ...s,
+    blocks: s.blocks.map(({ id, ...block }) => block),
+  });
+  assert.deepEqual(withoutIDs(shared), withoutIDs(schedule));
+  assert.ok(validSchedule(shared));
+  assert.notEqual(shared.blocks[0].id, schedule.blocks[0].id);
+  assert.equal(readShareLink(""), null);
+  assert.throws(() => readShareLink("#plan=invalid"));
+  assert.throws(() =>
+    readShareLink(
+      "#plan=" +
+        encodeURIComponent('{"blocks":[{"title":"Bad","minutes":-1}]}'),
+    ),
+  );
+  assert.equal(schedule.blocks[0].notes, "Hello 👋\nA second line");
 });

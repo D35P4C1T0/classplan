@@ -122,6 +122,21 @@ export function parseSchedule(text) {
   }
   return schedule;
 }
+// shortcut: links embed plan data; use file exports for plans that exceed URL limits.
+export function createShareLink(schedule, baseURL) {
+  const url = new URL(baseURL);
+  url.search = "";
+  const plan = {
+    ...schedule,
+    blocks: schedule.blocks.map(({ id, ...block }) => block),
+  };
+  url.hash = new URLSearchParams({ plan: JSON.stringify(plan) }).toString();
+  return url.href;
+}
+export function readShareLink(hash) {
+  const text = new URLSearchParams(hash.replace(/^#/, "")).get("plan");
+  return text === null ? null : parseSchedule(text);
+}
 const escapeHTML = (value) =>
   String(value).replace(
     /[&<>"']/g,
