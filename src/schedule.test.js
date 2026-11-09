@@ -206,3 +206,24 @@ test("undo restores successive deletions at their original positions without rev
   ]);
   assert.equal(remaining.length, original.length - 2);
 });
+
+test("JSON and YAML exports round-trip all editable schedule data", () => {
+  const schedule = initialSchedule();
+  schedule.title = 'Class: "Caffè"';
+  schedule.start = "10:30";
+  schedule.budget = 90;
+  schedule.colors = { presentation: "#123abc" };
+  schedule.blocks[0].notes = 'Line one\nLine two: "quoted"';
+  const withoutIDs = (value) => ({
+    ...value,
+    blocks: value.blocks.map(({ id, ...block }) => block),
+  });
+  for (const format of ["json", "yaml"]) {
+    const imported = parseSchedule(exportSchedule(schedule, format));
+    assert.deepEqual(withoutIDs(imported), withoutIDs(schedule));
+    assert.ok(validSchedule(imported));
+    const empty = { ...schedule, blocks: [] };
+    assert.deepEqual(parseSchedule(exportSchedule(empty, format)), empty);
+  }
+  assert.deepEqual(JSON.parse(exportSchedule(schedule, "json")), schedule);
+});

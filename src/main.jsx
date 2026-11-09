@@ -332,10 +332,12 @@ function App() {
   function download(format) {
     const url = URL.createObjectURL(
       new Blob([exportSchedule(schedule, format)], {
-        type:
-          format === "csv"
-            ? "text/csv;charset=utf-8"
-            : "text/html;charset=utf-8",
+        type: {
+          csv: "text/csv;charset=utf-8",
+          html: "text/html;charset=utf-8",
+          json: "application/json;charset=utf-8",
+          yaml: "application/yaml;charset=utf-8",
+        }[format],
       }),
     );
     const a = document.createElement("a");
@@ -392,6 +394,11 @@ function App() {
             >
               <Redo2 size={15} /> Redo
             </button>
+            {["json", "yaml"].map((format) => (
+              <button key={format} onClick={() => download(format)}>
+                <Download size={15} /> Export {format.toUpperCase()}
+              </button>
+            ))}
             <button onClick={() => download("csv")}>
               <Download size={15} />
               CSV

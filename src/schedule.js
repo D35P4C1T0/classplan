@@ -1,4 +1,4 @@
-import { parse } from "yaml";
+import { parse, stringify } from "yaml";
 
 export const TYPES = {
   presentation: { label: "Presentation", color: "#a0aff0", tint: "#2d3040" },
@@ -131,6 +131,8 @@ const escapeHTML = (value) =>
       ],
   );
 export function exportSchedule(schedule, format) {
+  if (format === "json") return JSON.stringify(schedule, null, 2);
+  if (format === "yaml") return stringify(schedule);
   let elapsed = 0;
   const rows = schedule.blocks.map((b) => {
     const row = [
