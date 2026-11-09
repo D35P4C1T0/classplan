@@ -373,6 +373,12 @@ function App() {
               <FilePlus2 size={15} /> New plan
             </button>
             <button
+              aria-haspopup="dialog"
+              onClick={() => importDialog.current.showModal()}
+            >
+              <Upload size={15} /> Import JSON / YAML
+            </button>
+            <button
               onClick={undoDeletion}
               disabled={!deletions.undo.length}
               title="Undo section deletion (Ctrl+Z / ⌘Z)"
@@ -385,12 +391,6 @@ function App() {
               title="Redo section deletion"
             >
               <Redo2 size={15} /> Redo
-            </button>
-            <button
-              aria-haspopup="dialog"
-              onClick={() => importDialog.current.showModal()}
-            >
-              <Upload size={15} /> Import
             </button>
             <button onClick={() => download("csv")}>
               <Download size={15} />
